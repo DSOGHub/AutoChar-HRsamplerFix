@@ -41,7 +41,7 @@ class Script(scripts.Script):
     # The title of the script. This is what will be displayed in the dropdown menu.
     def title(self):
 
-        return "fix autochar maybe"
+        return "AutoChar 0.9.5r1"
 
     def ui(self, is_img2img):
         gr.Markdown(
