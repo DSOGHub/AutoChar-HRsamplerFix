@@ -2,20 +2,17 @@ import modules.scripts as scripts
 import gradio as gr
 import os
 
-from modules import images
 from modules.processing import process_images, Processed
 from modules.processing import Processed
-from modules.shared import opts, cmd_opts, state
+from modules.processing import StableDiffusionProcessing
+from modules.shared import opts
 from modules.shared_state import State
 from modules.ui_components import FormRow
-from modules.shared_cmd_options import cmd_opts
-from modules.shared_options import options_templates
-from modules import scripts_postprocessing, shared
+from modules import shared
 from modules.processing import StableDiffusionProcessingImg2Img
 from modules.ui_common import create_refresh_button
-from modules import processing, shared, sd_samplers, images, devices,shared_items
-from modules import sd_models, sd_vae
-from modules import styles
+from modules import shared, shared_items
+from modules import sd_models
 
 # Check OpenCV version and update if necessary
 import cv2
@@ -44,7 +41,7 @@ class Script(scripts.Script):
     # The title of the script. This is what will be displayed in the dropdown menu.
     def title(self):
 
-        return "AutoChar 0.9.5"
+        return "fix autochar maybe"
 
     def ui(self, is_img2img):
         gr.Markdown(
@@ -164,9 +161,19 @@ class Script(scripts.Script):
                     hr_model = gr.Dropdown( choices=["Use same checkpoint"] + sd_models.checkpoint_tiles(use_short=True), value="Use same checkpoint", label='Checkpoint for High-Res Fix')
                     create_refresh_button(hr_model, sd_models.list_models, lambda: {"choices": ["Use same checkpoint"] + sd_models.checkpoint_tiles(use_short=True)}, "hr_checkpoint_refresh")
 
+                    # create instance of StableDiffusionProcessing to get HR sampler already in use
+                    get_HR_sampler = StableDiffusionProcessing()
+
+                    # Ensure extra_generation_params from is initialized
+                    if 'hr_sampler_name' not in get_HR_sampler.extra_generation_params:
+                        # If not, set a default value
+                         get_HR_sampler.extra_generation_params['hr_sampler_name'] = "DPM++ 2M Karras"
+
+                    # get HR sampler, replace default value
+                    inuse_HR_sampler = get_HR_sampler.extra_generation_params.get("hr_sampler_name")
                     hr_sampler = gr.Dropdown(
                         [x.name for x in shared_items.list_samplers()], label="High-Res Fix sampler",
-                        value="DPM++ 2M Karras",
+                        value=inuse_HR_sampler,
                         elem_id=self.elem_id("hr_sampler")
                     )
                     first_steps = gr.Slider(minimum=0, maximum=100, step=1, value=12,
@@ -187,7 +194,7 @@ class Script(scripts.Script):
 
                     sd_upscale_sampler = gr.Dropdown(
                         [x.name  for x in shared_items.list_samplers()], label="SD Upscale sampler",
-                        value="DPM++ 2M Karras",
+                        value=inuse_HR_sampler,
                         elem_id=self.elem_id("sd_upscale_sampler"), scale=2
                     )
                     second_clip = gr.Slider(minimum=1, maximum=12, step=1, value=1,
@@ -210,7 +217,7 @@ class Script(scripts.Script):
                     
                     face_sampler = gr.Dropdown(
                         [x.name for x in shared_items.list_samplers()], label="Inpaint sampler",
-                        value="DPM++ 2M Karras",
+                        value=inuse_HR_sampler,
                         elem_id=self.elem_id("face_sampler"), scale=2
                     )
                     face_clip = gr.Slider(minimum=1, maximum=12, step=1, value=1,
